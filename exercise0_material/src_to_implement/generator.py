@@ -56,11 +56,6 @@ class ImageGenerator:
 
 
     def next(self):
-        """
-        This function creates a batch of images and corresponding labels and returns them.
-        The batch size is defined by self.batch_size.
-        Handles cases where total data may not be divisible without remainder by the batch_size.
-        """
         # Calculate the starting index of the current batch
         current_image_no = self.current_batch * self.batch_size
 
@@ -103,16 +98,11 @@ class ImageGenerator:
         return images, labels
 
     def augment(self, img):
-
-        # Check if rotation augmentation is enabled
         if self.rotation:
             # Choose a random angle from the allowed rotation angles
             angle = random.choice([90, 180, 270])
             # Rotate the image by the selected angle and Divide angle by 90 to get number of rotations
             img = np.rot90(img, angle // 90, (0, 1))
-
-
-            # Check if mirroring augmentation is enabled
         if self.mirroring:
             # Flip the image along a random axis selected from self.mirror_axis
             img = np.flip(img, random.choice(self.mirror_axis))
@@ -126,10 +116,8 @@ class ImageGenerator:
         return self.class_dict[x]
 
     def show(self):
-        # In order to verify that the generator creates batches as required, this function calls next to get a
-        # batch of images and labels and visualizes it.
         images, labels = self.next()
-        batch_sqrt = int(np.ceil(np.sqrt(self.batch_size)))  # Ensure batch_sqrt is an integer
+        batch_sqrt = int(np.ceil(np.sqrt(self.batch_size)))
         counter = 0
         for image, label in zip(images, labels):
             counter += 1
@@ -142,5 +130,4 @@ class ImageGenerator:
 
 if __name__ == "__main__":
     gen = ImageGenerator("exercise_data/", "Labels.json", 60, [32, 32, 3], rotation=False, mirroring=False, shuffle=False)
-
     gen.show()
