@@ -9,7 +9,10 @@ import cv2
 
 class ImageGenerator:
     def __init__(self, file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False):
-        self.mirror_axis=None
+        # self.mirror_axis=None
+
+        if mirroring:
+            self.mirror_axis = [0, 1]  # Set this to valid axis indices for mirroring
 
         assert (isinstance(file_path, str)), "The file_path must be a string."
         self.file_path = file_path
@@ -38,7 +41,7 @@ class ImageGenerator:
             9: 'truck'
         }
 
-        self.current_epoch = 0
+        self.current_epoch_no = 0
         self.current_batch = 0
 
         label_json = open(self.label_path, "rb")  # read, binary
@@ -68,7 +71,7 @@ class ImageGenerator:
             if self.shuffle:
                 random.shuffle(self.image_names)
             last_img_num = len(self.image_names)
-            self.current_epoch += 1
+            self.current_epoch_no += 1
             self.current_batch = 0
 
         # Select batch names
@@ -117,7 +120,7 @@ class ImageGenerator:
         return img
 
     def current_epoch(self):
-        return self.current_epoch
+        return self.current_epoch_no
 
     def class_name(self, x):
         return self.class_dict[x]
