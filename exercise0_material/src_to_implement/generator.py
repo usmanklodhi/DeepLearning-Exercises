@@ -4,6 +4,7 @@ import scipy.misc
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 
 class ImageGenerator:
@@ -122,11 +123,21 @@ class ImageGenerator:
         return self.class_dict[x]
 
     def show(self):
+        # In order to verify that the generator creates batches as required, this function calls next to get a
+        # batch of images and labels and visualizes it.
         images, labels = self.next()
-        subplot_count = np.ceil(np.sqrt(self.batch_size))
-        for i, (image, label) in enumerate(zip(images, labels)):
-            # Subplot indices start at 1, not 0
-            plt.subplot(subplot_count, subplot_count, i + 1)
+        batch_sqrt = int(np.ceil(np.sqrt(self.batch_size)))  # Ensure batch_sqrt is an integer
+        counter = 0
+        for image, label in zip(images, labels):
+            counter += 1
+            plt.subplot(batch_sqrt, batch_sqrt, counter)
             plt.title(self.class_name(label))
-            plt.show(image)
+            plt.axis('off')
+            plt.imshow(image)
         plt.show()
+
+
+if __name__ == "__main__":
+    gen = ImageGenerator("exercise_data/", "Labels.json", 60, [32, 32, 3], rotation=False, mirroring=False, shuffle=False)
+
+    gen.show()
