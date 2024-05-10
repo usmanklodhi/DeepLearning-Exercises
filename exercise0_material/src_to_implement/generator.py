@@ -1,12 +1,14 @@
 import os.path
 import json
 import scipy.misc
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 class ImageGenerator:
     def __init__(self, file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False):
+        self.mirror_axis=None
         assert (isinstance(file_path, str)), "The file_path must be a string."
         self.file_path = file_path
         assert (isinstance(label_path, str)), "The label_path must be a string."
@@ -48,9 +50,18 @@ class ImageGenerator:
         #return images, labels
 
     def augment(self, img):
-        # this function takes a single image as an input and performs a random transformation
-        # (mirroring and/or rotation) on it and outputs the transformed image
-        #TODO: implement augmentation function
+
+        # Check if rotation augmentation is enabled
+        if self.rotation:
+            # Choose a random angle from the allowed rotation angles
+            angle = random.choice([90, 180, 270])
+            # Rotate the image by the selected angle and Divide angle by 90 to get number of rotations
+            img = np.rot90(img, angle // 90, (0, 1))
+
+            # Check if mirroring augmentation is enabled
+        if self.mirroring:
+            # Flip the image along a random axis selected from self.mirror_axis
+            img = np.flip(img, random.choice(self.mirror_axis))
 
         return img
 
