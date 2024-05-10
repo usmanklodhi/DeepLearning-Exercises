@@ -40,6 +40,16 @@ class ImageGenerator:
         self.current_epoch = 0
         self.current_batch = 0
 
+        label_json = open(self.label_path, "rb")  # read, binary
+        self.labels = json.load(label_json)  # convert json data into python object
+        label_json.close()
+
+        image_files = os.listdir(self.file_path)  # list all entries in a specified directory
+        self.image_names = [img_file[:-4] for img_file in image_files]  # remove file extension
+
+        if self.shuffle:
+            random.shuffle(self.image_names)
+
 
     def next(self):
         """
@@ -120,5 +130,3 @@ class ImageGenerator:
             plt.title(self.class_name(label))
             plt.show(image)
         plt.show()
-
-
