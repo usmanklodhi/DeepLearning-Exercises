@@ -59,6 +59,7 @@ class ImageGenerator:
             # Rotate the image by the selected angle and Divide angle by 90 to get number of rotations
             img = np.rot90(img, angle // 90, (0, 1))
 
+
             # Check if mirroring augmentation is enabled
         if self.mirroring:
             # Flip the image along a random axis selected from self.mirror_axis
