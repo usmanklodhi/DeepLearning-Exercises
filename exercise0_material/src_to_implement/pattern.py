@@ -67,3 +67,30 @@ class Spectrum:
             plt.imshow(self.output)
             plt.axis('off')
             plt.show()
+
+
+class Circle:
+    def __init__(self, resolution, radius, position):
+        self.resolution = resolution
+        self.radius = radius
+        self.position = position
+
+    def draw(self):
+        # Generate arrays of x and y coordinates from 0 to resolution - 1
+        x = np.arange(self.resolution)
+        y = np.arange(self.resolution)
+        # Create a meshgrid of x and y coordinates
+        x, y = np.meshgrid(x, y)
+
+        # Calculate distances from each point to the center of the circle, distances = np.sqrt((x - self.position[0]) ** 2 + (y - self.position[1]) ** 2)
+        distances = np.sqrt((x - self.position[0]) ** 2 + (y - self.position[1]) ** 2)
+
+        # Create an output array where points inside the circle have value 1, and outside have value 0
+        self.output = np.where(distances <= self.radius, 1, 0)
+
+        return self.output.copy()
+
+    def show(self):
+        plt.imshow(self.output, cmap='binary')
+        plt.axis('off')
+        plt.show()
