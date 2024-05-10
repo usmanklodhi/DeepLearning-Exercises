@@ -42,13 +42,51 @@ class ImageGenerator:
 
 
     def next(self):
-        # This function creates a batch of images and corresponding labels and returns them.
-        # In this context a "batch" of images just means a bunch, say 10 images that are forwarded at once.
-        # Note that your amount of total data might not be divisible without remainder with the batch_size.
-        # Think about how to handle such cases
-        #TODO: implement next method
-        pass
-        #return images, labels
+        """
+        This function creates a batch of images and corresponding labels and returns them.
+        The batch size is defined by self.batch_size.
+        Handles cases where total data may not be divisible without remainder by the batch_size.
+        """
+        # Calculate the starting index of the current batch
+        current_image_no = self.current_batch * self.batch_size
+
+        # Determine the end index for the current batch
+        last_img_num = current_image_no + self.batch_size
+        if last_img_num > len(self.image_names):
+            # Handle the end of dataset and optional reshuffling
+            if self.shuffle:
+                random.shuffle(self.image_names)
+            last_img_num = len(self.image_names)
+            self.current_epoch += 1
+            self.current_batch = 0
+
+        # Select batch names
+        image_batch_names = self.image_names[current_image_no:last_img_num]
+
+        # If the batch is smaller than batch_size, add images from the front
+        if len(image_batch_names) < self.batch_size and last_img_num == len(self.image_names):
+            num_of_less_images = self.batch_size - len(image_batch_names)
+            image_batch_names += self.image_names[:num_of_less_images]
+
+        # Load and process images and labels
+        images = []
+        labels = []
+        for image_name in image_batch_names:
+            image = np.load(self.file_path + image_name + ".npy")
+            image = self.augment(image)
+            image = cv2.resize(image, tuple(self.image_size[:-1]))
+            label = self.labels[image_name]
+            images.append(image)
+            labels.append(label)
+
+        # Convert lists to numpy arrays
+        images = np.array(images)
+        labels = np.array(labels)
+
+        # Increment the batch number for the next call
+        self.current_batch += 1
+
+        return images, labels
 
     def augment(self, img):
 
