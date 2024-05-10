@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 class ImageGenerator:
     def __init__(self, file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False):
         self.mirror_axis=None
+
         assert (isinstance(file_path, str)), "The file_path must be a string."
         self.file_path = file_path
         assert (isinstance(label_path, str)), "The label_path must be a string."
