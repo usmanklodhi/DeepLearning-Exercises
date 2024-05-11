@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
 import tabulate
-import argparse
 
 ID = 0  # identifier for dispatcher
 
@@ -172,7 +171,7 @@ class TestGen(unittest.TestCase):
     def testInit(self):
         # Creates two image generator objects without shuffling.
         # Calling next on either one should result in the same output
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 12, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=False)
         gen2 = ImageGenerator(self.file_path, self.label_path, 12, [32, 32, 3], rotation=False, mirroring=False,
@@ -185,7 +184,7 @@ class TestGen(unittest.TestCase):
     def testDuplicate(self):
         # Image Generator without overlapping batches.
         # Choose one output sample at random and check if it is the only instance in both batches.
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 50, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=False)
         b1 = gen.next()
@@ -209,7 +208,7 @@ class TestGen(unittest.TestCase):
         # overlap of 20 occurs, therefore the first 20 elements
         # of the first batch should be equal to the last 20 of the second batch
         # check with two different batch sizes
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 60, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=False)
         gen2 = ImageGenerator(self.file_path, self.label_path, 83, [32, 32, 3], rotation=False, mirroring=False,
@@ -229,7 +228,7 @@ class TestGen(unittest.TestCase):
     def testShuffle(self):
         # Creates two image generator objects.
         # Since shuffle is enabled for one image generator the output should be different.
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 10, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=True)
         gen2 = ImageGenerator(self.file_path, self.label_path, 10, [32, 32, 3], rotation=False, mirroring=False,
@@ -251,7 +250,7 @@ class TestGen(unittest.TestCase):
     def testShuffleEpoch(self):
         # Checks for shuffling of complete data set, not only inside batch after one epoch
         # Detects if the same images (or rather pixel values) are included in the same batch
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 50, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=True)
         b1_epoch0 = gen.next()[0]
@@ -262,7 +261,7 @@ class TestGen(unittest.TestCase):
                              "to shuffle the whole dataset after one epoch (not only within the batches).")
 
     def testEpoch(self):
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         gen = ImageGenerator(self.file_path, self.label_path, 50, [32, 32, 3], rotation=False, mirroring=False,
                              shuffle=True)
         gen.next()
@@ -279,7 +278,7 @@ class TestGen(unittest.TestCase):
                                                      "epoch.")
 
     def testRotation(self):
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
 
         batch1 = ImageGenerator(self.file_path, self.label_path, 100, [32, 32, 3], rotation=False, mirroring=False,
                                 shuffle=False).next()[0]
@@ -317,7 +316,7 @@ class TestGen(unittest.TestCase):
                                                "90, 180 or 270 degrees.")
 
     def testMirroring(self):
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
 
         batch1 = ImageGenerator(self.file_path, self.label_path, 12, [32, 32, 3], rotation=False, mirroring=False,
                                 shuffle=False).next()[0]
@@ -369,7 +368,7 @@ class TestGen(unittest.TestCase):
                                        )
 
     def testResize(self):
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
 
         batch = ImageGenerator(self.file_path, self.label_path, 12, [50, 50, 3], rotation=False, mirroring=False,
                                shuffle=False).next()[0]
@@ -380,7 +379,7 @@ class TestGen(unittest.TestCase):
     def testLabels(self):
         # this test makes sure your generator returns integers as labels and not any strings or floating point values
         # if this one fails make sure you cast your array values to integers
-        from generator import ImageGenerator
+        from exercise0_material.src_to_implement.generator import ImageGenerator
         label = ImageGenerator(self.file_path, self.label_path, 12, [50, 50, 3], rotation=False, mirroring=False,
                                shuffle=False).next()[1]
 
