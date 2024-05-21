@@ -3,6 +3,8 @@ import numpy as np
 
 class Sgd:
     def __init__(self, learning_rate):
+        # Assertion to ensure learning_rate is a float
+        assert isinstance(learning_rate, float)
         # Constructor to initialize the learning rate
         self.learning_rate = learning_rate
 
@@ -12,6 +14,6 @@ class Sgd:
         # The update rule for SGD is: new_weight = old_weight - (learning_rate * gradient)
         # Here, weight_tensor represents the current weights and gradient_tensor represents the gradients
 
-        updated_weights = weight_tensor - np.multiply(self.learning_rate, gradient_tensor)
+        updated_weights = weight_tensor - self.learning_rate * gradient_tensor
 
         return updated_weights
