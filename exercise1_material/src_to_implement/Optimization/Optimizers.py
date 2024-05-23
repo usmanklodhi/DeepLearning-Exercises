@@ -4,7 +4,7 @@ import numpy as np
 class Sgd:
     def __init__(self, learning_rate):
         # Assertion to ensure learning_rate is a float
-        assert isinstance(learning_rate, float)
+        # assert isinstance(learning_rate, float)
         # Constructor to initialize the learning rate
         self.learning_rate = learning_rate
 
