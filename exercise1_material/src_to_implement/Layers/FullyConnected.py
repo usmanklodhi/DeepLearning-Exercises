@@ -1,6 +1,7 @@
 import numpy as np
 from .Base import BaseLayer
 
+
 class FullyConnected(BaseLayer):
     def __init__(self, input_size, output_size):
         super().__init__()
@@ -10,22 +11,28 @@ class FullyConnected(BaseLayer):
         self.input_size = input_size
         self.output_size = output_size
         self.trainable = True
-        self.weights = np.random.uniform(0, 1, (output_size, input_size))
-        self.biases = np.random.uniform(0, 1, (output_size, 1))
+        # Adding 1 to input_size to accommodate bias in the weights' matrix.
+        self.weights = np.random.uniform(0, 1, (output_size, input_size + 1))
         self._optimizer = None
 
     def forward(self, input_tensor):
         self.input_tensor = input_tensor
-        return np.dot(self.weights, input_tensor.T).T + self.biases.T
+        # Column vector filled with ones with shape (number of samples in input_tensor, 1)
+        bias_term = np.ones((input_tensor.shape[0], 1))
+        # Horizontally stack each row of input tensor with 1 at the end
+        augmented_input = np.hstack([input_tensor, bias_term])
+        # Perform matrix multiplication
+        return np.dot(augmented_input, self.weights.T)
 
     def backward(self, error_tensor):
-        self.gradient_weights = np.dot(error_tensor.T, self.input_tensor)  # Gradient wrt weights
-        self.gradient_biases = np.sum(error_tensor.T, axis=1, keepdims=True)  # Gradient wrt biases
+        bias_term = np.ones((self.input_tensor.shape[0], 1))
+        augmented_input = np.hstack([self.input_tensor, bias_term])
+        self.gradient_weights = np.dot(error_tensor.T, augmented_input)
         if self._optimizer:  # optimizer is set
             sgd = self.optimizer
             self.weights = sgd.calculate_update(self.weights, self.gradient_weights)
-            self.biases = sgd.calculate_update(self.biases, self.gradient_biases)
-        return np.dot(error_tensor, self.weights)
+        # Return the gradient wrt input (excluding the bias)
+        return np.dot(error_tensor, self.weights[:,:-1])
 
     @property
     def optimizer(self):
