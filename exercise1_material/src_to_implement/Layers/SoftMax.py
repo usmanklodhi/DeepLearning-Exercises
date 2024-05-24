@@ -17,6 +17,10 @@ class SoftMax(BaseLayer):
         return self.softmax_output
 
     def backward(self, error_tensor):
-        batch_size = error_tensor.shape[0]
-        grad_input = self.softmax_output - error_tensor
-        return grad_input / batch_size
+        # Gradient of the loss with respect to the input logits
+        gradient_logits = self.softmax_output * error_tensor
+        # Sum of the gradients across the classes (for each sample in the batch)
+        sum_gradients = gradient_logits.sum(axis=1, keepdims=True)
+        # Subtract the scaled softmax output from the gradient to adjust for the interaction between classes
+        gradient_logits -= self.softmax_output * sum_gradients
+        return gradient_logits
