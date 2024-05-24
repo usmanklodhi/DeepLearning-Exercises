@@ -10,8 +10,7 @@ class NeuralNetwork(object):
         self.loss = []
         self.layers = []
         self.data_layer = None
-        self.loss_layer = None
-
+        self.loss_layer = Loss.CrossEntropyLoss()  # Initialize the loss layer once
         self.input_tensor = None
         self.label_tensor = None
 
@@ -24,11 +23,9 @@ class NeuralNetwork(object):
             current_weights = layer.forward(current_weights)  # layer's forward
             # result gets passed to next layer for forward in successive iterations
         predictions = current_weights  # last layers value are predictive
-        self.loss_layer = Loss.CrossEntropyLoss()
         return self.loss_layer.forward(predictions, self.label_tensor)
 
     def backward(self):
-        self.loss_layer = Loss.CrossEntropyLoss()  # check if this is needed here, or we can globally set this value
         error = self.loss_layer.backward(self.label_tensor)
         for i in range(1, len(self.layers) + 1):
             layer = self.layers[-i]  # iterating layers for back-propagate
