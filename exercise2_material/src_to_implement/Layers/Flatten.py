@@ -1,10 +1,12 @@
 import numpy as np
+from .Base import BaseLayer
 
-
-class Flatten:
+class Flatten(BaseLayer):
     def __init__(self):
         # stores the shape of the input tensor, which is used in the backward pass
+        super().__init__()
         self.input_shape = None
+        self.trainable = False
 
     def forward(self, input_tensor):
         self.input_shape = input_tensor.shape
