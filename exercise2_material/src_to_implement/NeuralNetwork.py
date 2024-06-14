@@ -5,14 +5,17 @@ from Optimization import *
 
 
 class NeuralNetwork(object):
-    def __init__(self, optimizer):
+    def __init__(self, optimizer=None, weight_init=None, bias_init=None):
         self.optimizer = optimizer
+        self.weight_init = weight_init
+        self.bias_init = bias_init
         self.loss = []
         self.layers = []
         self.data_layer = None
         self.loss_layer = Loss.CrossEntropyLoss()  # Initialize the loss layer once
         self.input_tensor = None
         self.label_tensor = None
+
 
     def forward(self):
         self.input_tensor, self.label_tensor = self.data_layer.next()
@@ -36,7 +39,9 @@ class NeuralNetwork(object):
         if layer.trainable:  # if layer parameters need to be updated, ensure there is no shared state between
             # different layer's optimizers
             layer.optimizer = copy.deepcopy(self.optimizer)
+            layer.initialize(self.weight_init, self.bias_init)
         self.layers.append(layer)
+
 
     def train(self, iterations):
         for i in range(iterations):
