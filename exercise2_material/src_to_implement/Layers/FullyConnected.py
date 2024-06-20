@@ -34,6 +34,13 @@ class FullyConnected(BaseLayer):
         # Return the gradient wrt input (excluding the bias)
         return np.dot(error_tensor, self.weights[:,:-1])
 
+    def initialize(self, weights_initializer, bias_initializer):
+        # Initialize the weights (excluding the bias term)
+        self.weights[:, :-1] = weights_initializer.initialize((self.output_size, self.input_size), self.input_size,
+                                                              self.output_size)
+        # Initialize the bias (last column in weights matrix)
+        self.weights[:, -1] = bias_initializer.initialize((self.output_size,), self.input_size, self.output_size)
+
     @property
     def optimizer(self):
         return self._optimizer
