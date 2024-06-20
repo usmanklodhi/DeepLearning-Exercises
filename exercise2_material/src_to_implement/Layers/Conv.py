@@ -1,8 +1,8 @@
+import copy
 import math
-
 import numpy as np
 import scipy.signal
-from scipy.signal import convolve, correlate
+
 from .Base import BaseLayer
 
 
@@ -10,95 +10,108 @@ class Conv(BaseLayer):
     def __init__(self, stride_shape, convolution_shape, num_kernels):
         super().__init__()
         self.input_tensor = None
-        self.trainable = True
+        self.trainable = True # Indicates that the layer has trainable parameters
 
+        self.num_kernels = num_kernels
         self.stride_shape = stride_shape
         self.convolution_shape = convolution_shape
-        self.num_kernels = num_kernels
 
-        # Initialize weights and biases UNIFORMLY in the range [0, 1)
-        self.weights = np.random.uniform(0, 1, (num_kernels,) + convolution_shape)
-        self.bias = np.random.uniform(0, 1, (num_kernels,))
+        # Initialize weights and bias for the kernels
+        self.weights = np.random.uniform(0, 1, (num_kernels, *convolution_shape))
+        self.bias = np.random.random(num_kernels)
 
-        self._gradient_weights = np.zeros_like(self.weights)
-        self._gradient_bias = np.zeros_like(self.bias)
-
+        self._padding = "same"
         self._optimizer = None
-        # Variable for padding has not been set thus far
+        self._gradient_weights = None
+        self._gradient_bias = None
 
     def forward(self, input_tensor):
+        # Perform the forward pass of the convolution layer
         batch_size = input_tensor.shape[0]
         if len(input_tensor.shape) == 3:
-            height_input = input_tensor.shape[2]
-            height_output = math.ceil(height_input/self.stride_shape[0])
-            output_tensor = np.zeros(batch_size, self.num_kernels, height_output)
+            # For 1D convolution
+            hin = input_tensor.shape[2]
+            hout = math.ceil(hin / self.stride_shape[0])
+            out = np.zeros((batch_size, self.num_kernels, hout))
         if len(input_tensor.shape) == 4:
-            height_input = input_tensor.shape[2]
-            width_input = input_tensor.shape[3]
-            height_output = math.ceil(height_input/self.stride_shape[0])
-            width_output = math.ceil(width_input/self.stride_shape[1])
-            output_tensor = np.zeros((batch_size, self.num_kernels, height_output, width_output))
+            # For 2D convolution
+            hin = input_tensor.shape[2]
+            win = input_tensor.shape[3]
+            hout = math.ceil(hin / self.stride_shape[0])
+            wout = math.ceil(win / self.stride_shape[1])
+            out = np.zeros((batch_size, self.num_kernels, hout, wout))
 
-        # Store input parameter for back-propagation
-        self.input_tensor = input_tensor
+        self.input_tensor = input_tensor  # storing for backprop
 
-        for i in range(batch_size):
-            for k in range(self.num_kernels):
-                # output is a temporary variable, used to store results of convolution operations
-                output = scipy.signal.correlate(input_tensor[i], self.weights[k], "same")
-                output = output[output.shape[0] // 2]  # reduce dimensionality of the output from convolution
+        for item in range(batch_size):
+            for ker in range(self.num_kernels):
+                # Perform the convolution operation
+                output = scipy.signal.correlate(input_tensor[item], self.weights[ker],
+                                                self._padding)  # same padding with stride 1 -> input size = output size
+                output = output[output.shape[0] // 2]  # valid padding along channels --> drops channels
                 if len(self.stride_shape) == 1:
-                    output = output[::self.stride_shape[0]]
+                    output = output[::self.stride_shape[0]]  # stride --> skip
                 elif len(self.stride_shape) == 2:
-                    output = output[::self.stride_shape[0], ::self.stride_shape[1]]
-                output_tensor[i, k] = output + self.bias[k]
-        return output_tensor
+                    output = output[::self.stride_shape[0], ::self.stride_shape[1]]  # diff stride in diff spatial dims
+                out[item, ker] = output + self.bias[ker]
+        return out
 
-    def backward(self, error_tensor):
-        batch_size = np.shape(error_tensor)[0]
+    def backward(self, errT):
+        # Perform the backward pass of the convolution layer
+        batch_size = np.shape(errT)[0]
         num_channels = self.convolution_shape[0]
 
-        # Prepare modified weights for gradient computation
-        flipped_weights = np.swapaxes(self.weights, 0, 1)
-        flipped_weights = np.fliplr(flipped_weights)
+        # Prepare weights for convolution
+        weights = np.swapaxes(self.weights, 0, 1)
+        weights = np.fliplr(weights)
+        error_per_item = np.zeros((batch_size, self.num_kernels, *self.input_tensor.shape[2:]))
+        dX = np.zeros((batch_size, num_channels, *self.input_tensor.shape[2:]))
+        for item in range(batch_size):
+            for ch in range(num_channels):
+                if len(self.stride_shape) == 1:
+                    error_per_item[:, :, ::self.stride_shape[0]] = errT[item]
+                else:
+                    error_per_item[:, :, ::self.stride_shape[0], ::self.stride_shape[1]] = errT[item]
+                output = scipy.signal.convolve(error_per_item[item], weights[ch], 'same')
+                output = output[output.shape[0] // 2]
+                dX[item, ch] = output
 
-        # Initialize gradients and error arrays
-        input_gradient = np.zeros((batch_size, num_channels, *self.input_tensor.shape[2:]))
-        weight_gradient = np.zeros((self.num_kernels, *self.convolution_shape))
-        bias_gradient = np.zeros(self.num_kernels)
+        # Compute gradients for weights and bias
+        self._gradient_weights, self._gradient_bias = self.get_weights_biases_gradient(errT)
+        if self.optimizer is not None:
+            # Update weights and bias using optimizer
+            self.weights = copy.deepcopy(self.optimizer).calculate_update(self.weights, self._gradient_weights)
+            self.bias = copy.deepcopy(self.optimizer).calculate_update(self.bias, self._gradient_bias)
 
-        for batch_index in range(batch_size):
-            # Adjust error tensor according to strides for gradient computation
-            adjusted_error_tensor = np.zeros((self.num_kernels, *self.input_tensor.shape[2:]))
+        return dX
+
+    def get_weights_biases_gradient(self, errT):
+        # Compute gradients for weights and bias
+
+        global dB
+        batch_size = np.shape(errT)[0]
+        num_channels = self.convolution_shape[0]
+        dW = np.zeros((self.num_kernels, *self.convolution_shape))
+        error_per_item = np.zeros((batch_size, self.num_kernels, *self.input_tensor.shape[2:]))
+        for item in range(batch_size):
             if len(self.stride_shape) == 1:
-                adjusted_error_tensor[:, ::self.stride_shape[0]] = error_tensor[batch_index]
+                error_per_item[:, :, ::self.stride_shape[0]] = errT[item]
+                dB = np.sum(errT, axis=(0, 2))
+                padding_width = ((0, 0), (self.convolution_shape[1] // 2, (self.convolution_shape[1] - 1) // 2))
             else:
-                adjusted_error_tensor[:, ::self.stride_shape[0], ::self.stride_shape[1]] = error_tensor[batch_index]
+                error_per_item[:, :, ::self.stride_shape[0], ::self.stride_shape[1]] = errT[item]
+                dB = np.sum(errT, axis=(0, 2, 3))
+                padding_width = ((0, 0), (self.convolution_shape[1] // 2, (self.convolution_shape[1] - 1) // 2),
+                                 (self.convolution_shape[2] // 2, (self.convolution_shape[2] - 1) // 2))
 
-            # Compute gradients for input (input_gradient)
-            for channel_index in range(num_channels):
-                convoluted_output = scipy.signal.convolve(adjusted_error_tensor, flipped_weights[channel_index], 'same')
-                convoluted_output = convoluted_output[convoluted_output.shape[0] // 2]
-                input_gradient[batch_index, channel_index] = convoluted_output
-
-            # Compute gradients for weights (weight_gradient) and biases (bias_gradient)
-            padding_config = tuple(
-                (0, 0) if dim != 1 else (self.convolution_shape[dim] // 2, (self.convolution_shape[dim] - 1) // 2)
-                for dim in range(len(self.convolution_shape))
-            )
-            padded_input = np.pad(self.input_tensor[batch_index], padding_config, mode='constant', constant_values=0)
-            for kernel_index in range(self.num_kernels):
-                for channel_index in range(num_channels):
-                    weight_gradient[kernel_index, channel_index] += scipy.signal.correlate(padded_input[channel_index],
-                                                                                           adjusted_error_tensor[
-                                                                                               kernel_index], 'valid')
-
-        # Update weights and biases if optimizer is set
-        if self._optimizer:
-            self.weights = self._optimizer.calculate_update(self.weights, weight_gradient)
-            self.bias = self._optimizer.calculate_update(self.bias, bias_gradient)
-
-        return input_gradient
+            # Pad the input tensor for valid convolution
+            paded_X = np.pad(self.input_tensor[item], padding_width, mode='constant', constant_values=0)
+            tmp = np.zeros((self.num_kernels, *self.convolution_shape))
+            for ker in range(self.num_kernels):
+                for ch in range(num_channels):
+                    tmp[ker, ch] = scipy.signal.correlate(paded_X[ch], error_per_item[item][ker], 'valid')
+            dW += tmp
+        return dW, dB
 
     @property
     def gradient_weights(self):
@@ -112,11 +125,12 @@ class Conv(BaseLayer):
     def optimizer(self):
         return self._optimizer
 
-    @ optimizer.setter
+    @optimizer.setter
     def optimizer(self, optimizer):
         self._optimizer = optimizer
 
     def initialize(self, weights_initializer, bias_initializer):
+        # Initialize weights and bias using the provided initializers
         self.weights = weights_initializer.initialize(self.weights.shape, np.prod(self.convolution_shape),
                                                       self.num_kernels * np.prod(self.convolution_shape[1:]))
         self.bias = bias_initializer.initialize(self.bias.shape, 1, self.num_kernels)
